@@ -1,8 +1,37 @@
 #!/usr/bin/env python3
+"""HeadHunter MCP Server.
+
+This module provides a Model Context Protocol (MCP) server for interacting with
+the HeadHunter job search API. The server exposes various tools for searching
+vacancies, retrieving detailed job information, managing applications, and
+handling user authentication through OAuth.
+
+The module implements the MCP protocol to allow AI assistants to interact with
+HeadHunter's API services, including both public API endpoints (for searching
+vacancies and employers) and authenticated endpoints (for managing resumes and
+applications).
+
+Main components:
+    - MCP Server setup with stdio transport
+    - Tool definitions for various HeadHunter API operations
+    - Request handling and response formatting
+    - OAuth authentication support
+
+Tools:
+    hh_search_vacancies: Search for job vacancies with various filters
+    hh_get_vacancy: Get detailed information about a specific vacancy
+    hh_get_employer: Retrieve employer/company information
+    hh_get_similar: Find similar vacancies for a given vacancy
+    hh_get_areas: Get list of available regions/areas for filtering
+    hh_get_dictionaries: Retrieve all filter dictionaries from HeadHunter
+    hh_apply_to_vacancy: Submit job applications (requires OAuth)
+    hh_get_negotiations: Get user's application history (requires OAuth)
+    hh_get_resumes: List user's resumes (requires OAuth)
+    hh_get_resume: Get detailed resume information (requires OAuth)
+"""
 import asyncio
-import os
 import json
-from typing import Any, Optional
+from typing import Any
 from dotenv import load_dotenv
 
 from mcp.server import Server
@@ -11,9 +40,7 @@ from mcp.types import (
     TextContent,
     ImageContent,
     EmbeddedResource,
-    LoggingLevel
 )
-from pydantic import AnyUrl
 import mcp.server.stdio
 
 from hh_client import HHClient
@@ -25,6 +52,24 @@ hh_client = HHClient()
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
+    """Return the list of available MCP tools for HeadHunter API.
+
+    This function defines all the tools that can be called by MCP clients
+    to interact with the HeadHunter API. It includes both public tools
+    (for searching vacancies and getting employer information) and
+    authenticated tools (for managing applications and resumes).
+
+    The tools are organized into several categories:
+    - Vacancy search and retrieval
+    - Employer information
+    - Similar vacancies
+    - Reference data (areas, dictionaries)
+    - User operations (applications, resumes) - require OAuth
+
+    Returns:
+        list[Tool]: A list of Tool objects defining the available MCP tools,
+            each with its name, description, and input schema.
+    """
     return [
         Tool(
             name="hh_search_vacancies",
@@ -201,6 +246,36 @@ async def list_tools() -> list[Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: Any) -> list[TextContent | ImageContent | EmbeddedResource]:
+    """Execute a HeadHunter API tool call.
+
+    This function serves as the main dispatcher for all HeadHunter MCP tool
+    calls. It handles the execution of various tools including vacancy search,
+    detailed information retrieval, application management, and resume
+    operations. The function processes the tool arguments, makes the
+    appropriate API calls through the HHClient, and formats the responses
+    for the MCP client.
+
+    The function handles both public API calls (no authentication required)
+    and authenticated calls (OAuth token required). For authenticated calls,
+    appropriate error handling is provided when tokens are missing or invalid.
+
+    Args:
+        name (str): The name of the tool to execute. Must be one of the
+            supported tool names defined in list_tools().
+        arguments (Any): The arguments for the tool call. The structure
+            depends on the specific tool being called and matches the
+            inputSchema defined for that tool.
+
+    Returns:
+        list[TextContent | ImageContent | EmbeddedResource]: A list containing
+            the formatted response from the HeadHunter API. Typically contains
+            a single TextContent object with the formatted result data.
+
+    Raises:
+        Exception: Various exceptions may be raised during API calls,
+            authentication issues, or data processing errors. All exceptions
+            are caught and returned as error messages to the MCP client.
+    """
     try:
         if name == "hh_search_vacancies":
             result = await hh_client.search_vacancies(**arguments)
@@ -367,6 +442,18 @@ Experience:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 async def main():
+    """Initialize and run the HeadHunter MCP server.
+
+    This function serves as the entry point for the HeadHunter MCP server.
+    It sets up the standard input/output (stdio) transport for communication
+    with MCP clients and starts the server with the necessary initialization
+    options.
+
+    The server runs indefinitely, handling incoming MCP requests until
+    terminated. The stdio transport allows the server to communicate with
+    MCP clients through standard input and output streams, making it suitable
+    for use with AI assistants and other MCP-compatible applications.
+    """
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await app.run(
             read_stream,

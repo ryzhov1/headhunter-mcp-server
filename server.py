@@ -29,6 +29,7 @@ Tools:
     hh_get_resumes: List user's resumes (requires OAuth)
     hh_get_resume: Get detailed resume information (requires OAuth)
 """
+
 import asyncio
 import json
 from typing import Any
@@ -49,6 +50,7 @@ load_dotenv()
 
 app = Server("hh-api")
 hh_client = HHClient()
+
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
@@ -79,47 +81,55 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "text": {
                         "type": "string",
-                        "description": "Search query (job title, keywords, skills)"
+                        "description": "Search query (job title, keywords, skills)",
                     },
                     "area": {
                         "type": "integer",
-                        "description": "Region ID (1=Moscow, 2=SPb, 113=Russia). Use hh_get_areas to find IDs."
+                        "description": "Region ID (1=Moscow, 2=SPb, 113=Russia). Use hh_get_areas to find IDs.",
                     },
                     "experience": {
                         "type": "string",
-                        "enum": ["noExperience", "between1And3", "between3And6", "moreThan6"],
-                        "description": "Required experience level"
+                        "enum": [
+                            "noExperience",
+                            "between1And3",
+                            "between3And6",
+                            "moreThan6",
+                        ],
+                        "description": "Required experience level",
                     },
                     "employment": {
                         "type": "string",
                         "enum": ["full", "part", "project", "volunteer", "probation"],
-                        "description": "Employment type"
+                        "description": "Employment type",
                     },
                     "schedule": {
                         "type": "string",
-                        "enum": ["fullDay", "shift", "flexible", "remote", "flyInFlyOut"],
-                        "description": "Work schedule"
+                        "enum": [
+                            "fullDay",
+                            "shift",
+                            "flexible",
+                            "remote",
+                            "flyInFlyOut",
+                        ],
+                        "description": "Work schedule",
                     },
-                    "salary": {
-                        "type": "integer",
-                        "description": "Minimum salary"
-                    },
+                    "salary": {"type": "integer", "description": "Minimum salary"},
                     "only_with_salary": {
                         "type": "boolean",
-                        "description": "Show only vacancies with specified salary"
+                        "description": "Show only vacancies with specified salary",
                     },
                     "per_page": {
                         "type": "integer",
                         "description": "Results per page (max 100)",
-                        "default": 20
+                        "default": 20,
                     },
                     "page": {
                         "type": "integer",
                         "description": "Page number (0-indexed)",
-                        "default": 0
-                    }
-                }
-            }
+                        "default": 0,
+                    },
+                },
+            },
         ),
         Tool(
             name="hh_get_vacancy",
@@ -129,11 +139,11 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "vacancy_id": {
                         "type": "string",
-                        "description": "Vacancy ID from search results"
+                        "description": "Vacancy ID from search results",
                     }
                 },
-                "required": ["vacancy_id"]
-            }
+                "required": ["vacancy_id"],
+            },
         ),
         Tool(
             name="hh_get_employer",
@@ -143,11 +153,11 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "employer_id": {
                         "type": "string",
-                        "description": "Employer ID from vacancy data"
+                        "description": "Employer ID from vacancy data",
                     }
                 },
-                "required": ["employer_id"]
-            }
+                "required": ["employer_id"],
+            },
         ),
         Tool(
             name="hh_get_similar",
@@ -155,29 +165,20 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "vacancy_id": {
-                        "type": "string",
-                        "description": "Vacancy ID"
-                    }
+                    "vacancy_id": {"type": "string", "description": "Vacancy ID"}
                 },
-                "required": ["vacancy_id"]
-            }
+                "required": ["vacancy_id"],
+            },
         ),
         Tool(
             name="hh_get_areas",
             description="Get list of all available regions/areas with IDs for filtering",
-            inputSchema={
-                "type": "object",
-                "properties": {}
-            }
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="hh_get_dictionaries",
             description="Get all dictionaries (experience, employment, schedule, etc.) for filtering",
-            inputSchema={
-                "type": "object",
-                "properties": {}
-            }
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="hh_apply_to_vacancy",
@@ -187,19 +188,19 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "vacancy_id": {
                         "type": "string",
-                        "description": "Vacancy ID to apply to"
+                        "description": "Vacancy ID to apply to",
                     },
                     "resume_id": {
                         "type": "string",
-                        "description": "Resume ID to use for application"
+                        "description": "Resume ID to use for application",
                     },
                     "letter": {
                         "type": "string",
-                        "description": "Cover letter text (optional)"
-                    }
+                        "description": "Cover letter text (optional)",
+                    },
                 },
-                "required": ["vacancy_id", "resume_id"]
-            }
+                "required": ["vacancy_id", "resume_id"],
+            },
         ),
         Tool(
             name="hh_get_negotiations",
@@ -210,23 +211,20 @@ async def list_tools() -> list[Tool]:
                     "per_page": {
                         "type": "integer",
                         "description": "Results per page (max 100)",
-                        "default": 20
+                        "default": 20,
                     },
                     "page": {
                         "type": "integer",
                         "description": "Page number (0-indexed)",
-                        "default": 0
-                    }
-                }
-            }
+                        "default": 0,
+                    },
+                },
+            },
         ),
         Tool(
             name="hh_get_resumes",
             description="Get list of user's resumes (requires OAuth)",
-            inputSchema={
-                "type": "object",
-                "properties": {}
-            }
+            inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
             name="hh_get_resume",
@@ -234,18 +232,18 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "resume_id": {
-                        "type": "string",
-                        "description": "Resume ID"
-                    }
+                    "resume_id": {"type": "string", "description": "Resume ID"}
                 },
-                "required": ["resume_id"]
-            }
-        )
+                "required": ["resume_id"],
+            },
+        ),
     ]
 
+
 @app.call_tool()
-async def call_tool(name: str, arguments: Any) -> list[TextContent | ImageContent | EmbeddedResource]:
+async def call_tool(
+    name: str, arguments: Any
+) -> list[TextContent | ImageContent | EmbeddedResource]:
     """Execute a HeadHunter API tool call.
 
     This function serves as the main dispatcher for all HeadHunter MCP tool
@@ -308,8 +306,7 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent | ImageConten
 
             return [
                 TextContent(
-                    type="text",
-                    text=f"{summary}\n\n" + "\n".join(formatted_items)
+                    type="text", text=f"{summary}\n\n" + "\n".join(formatted_items)
                 )
             ]
 
@@ -351,7 +348,11 @@ URL: {result.get('alternate_url', 'N/A')}
 
         elif name == "hh_get_employer":
             result = await hh_client.get_employer(arguments["employer_id"])
-            return [TextContent(type="text", text=json.dumps(result, indent=2, ensure_ascii=False))]
+            return [
+                TextContent(
+                    type="text", text=json.dumps(result, indent=2, ensure_ascii=False)
+                )
+            ]
 
         elif name == "hh_get_similar":
             result = await hh_client.get_similar_vacancies(arguments["vacancy_id"])
@@ -363,19 +364,39 @@ URL: {result.get('alternate_url', 'N/A')}
                     f"[{item['id']}] {item['name']} - {item.get('employer', {}).get('name', 'N/A')}"
                 )
 
-            return [TextContent(type="text", text="\n".join(formatted_items) if formatted_items else "No similar vacancies found")]
+            return [
+                TextContent(
+                    type="text",
+                    text="\n".join(formatted_items)
+                    if formatted_items
+                    else "No similar vacancies found",
+                )
+            ]
 
         elif name == "hh_get_areas":
             result = await hh_client.get_areas()
-            return [TextContent(type="text", text=json.dumps(result, indent=2, ensure_ascii=False))]
+            return [
+                TextContent(
+                    type="text", text=json.dumps(result, indent=2, ensure_ascii=False)
+                )
+            ]
 
         elif name == "hh_get_dictionaries":
             result = await hh_client.get_dictionaries()
-            return [TextContent(type="text", text=json.dumps(result, indent=2, ensure_ascii=False))]
+            return [
+                TextContent(
+                    type="text", text=json.dumps(result, indent=2, ensure_ascii=False)
+                )
+            ]
 
         elif name == "hh_apply_to_vacancy":
             result = await hh_client.apply_to_vacancy(**arguments)
-            return [TextContent(type="text", text=f"Application submitted successfully!\n{json.dumps(result, indent=2, ensure_ascii=False)}")]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Application submitted successfully!\n{json.dumps(result, indent=2, ensure_ascii=False)}",
+                )
+            ]
 
         elif name == "hh_get_negotiations":
             per_page = arguments.get("per_page", 20)
@@ -407,7 +428,11 @@ URL: {result.get('alternate_url', 'N/A')}
 
             formatted_items = []
             for item in items:
-                status = "✅ Published" if item.get("status", {}).get("id") == "published" else "⏸️ Not published"
+                status = (
+                    "✅ Published"
+                    if item.get("status", {}).get("id") == "published"
+                    else "⏸️ Not published"
+                )
                 formatted_items.append(
                     f"[{item['id']}] {item.get('title', 'No title')}\n"
                     f"  Status: {status}\n"
@@ -415,7 +440,13 @@ URL: {result.get('alternate_url', 'N/A')}
                     f"  Views: {item.get('views_count', 0)}\n"
                 )
 
-            return [TextContent(type="text", text=f"Your resumes ({len(items)}):\n\n" + "\n".join(formatted_items))]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Your resumes ({len(items)}):\n\n"
+                    + "\n".join(formatted_items),
+                )
+            ]
 
         elif name == "hh_get_resume":
             result = await hh_client.get_resume(arguments["resume_id"])
@@ -428,8 +459,10 @@ Views: {result.get('views_count', 0)}
 
 Experience:
 """
-            for exp in result.get('experience', []):
-                formatted += f"- {exp.get('company', 'N/A')}: {exp.get('position', 'N/A')}\n"
+            for exp in result.get("experience", []):
+                formatted += (
+                    f"- {exp.get('company', 'N/A')}: {exp.get('position', 'N/A')}\n"
+                )
 
             formatted += f"\nSkills: {result.get('skills', 'N/A')}"
 
@@ -440,6 +473,7 @@ Experience:
 
     except Exception as e:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
+
 
 async def main():
     """Initialize and run the HeadHunter MCP server.
@@ -455,11 +489,8 @@ async def main():
     for use with AI assistants and other MCP-compatible applications.
     """
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options()
-        )
+        await app.run(read_stream, write_stream, app.create_initialization_options())
+
 
 if __name__ == "__main__":
     asyncio.run(main())

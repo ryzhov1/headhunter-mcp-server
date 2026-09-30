@@ -11,8 +11,7 @@ The client handles:
     - Similar vacancies discovery
     - Reference data access (areas, dictionaries)
     - OAuth authentication and token management
-    - User operations (applications, resumes) with proper authentication
-    - Automatic token refresh for authenticated requests
+    - Read-only user operations (application history and resumes)
 
 Authentication:
     The client supports two types of authentication:
@@ -31,7 +30,6 @@ Required environment variables:
 import httpx
 import os
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
 
 
 class HHClient:
@@ -47,12 +45,9 @@ class HHClient:
     Attributes:
         BASE_URL (str): Base URL for HeadHunter API endpoints
         client_id (str): OAuth client ID from environment variables
-        client_secret (str): OAuth client secret from environment variables
         app_token (str): Application token for public API calls
         redirect_uri (str): OAuth redirect URI from environment variables
         access_token (str): Current user access token for authenticated calls
-        refresh_token (str): Refresh token for automatic token renewal
-        token_expires_at (datetime): Expiration time for the current access token
     """
 
     BASE_URL = "https://api.hh.ru"
@@ -74,12 +69,8 @@ class HHClient:
             - HH_REFRESH_TOKEN: Refresh token for token renewal (optional)
         """
         self.client_id = os.getenv("HH_CLIENT_ID")
-        self.client_secret = os.getenv("HH_CLIENT_SECRET")
         self.app_token = os.getenv("HH_APP_TOKEN")
-        self.redirect_uri = os.getenv("HH_REDIRECT_URI")
         self.access_token: Optional[str] = os.getenv("HH_ACCESS_TOKEN")
-        self.refresh_token: Optional[str] = os.getenv("HH_REFRESH_TOKEN")
-        self.token_expires_at: Optional[datetime] = None
 
     def _get_headers(self, authenticated: bool = False) -> Dict[str, str]:
         """Generate HTTP headers for HeadHunter API requests.
@@ -173,7 +164,7 @@ class HHClient:
         }
         params = {k: v for k, v in params.items() if v is not None}
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/vacancies", params=params, headers=self._get_headers()
             )
@@ -209,7 +200,7 @@ class HHClient:
         Raises:
             httpx.HTTPError: If the vacancy doesn't exist or API request fails.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/vacancies/{vacancy_id}", headers=self._get_headers()
             )
@@ -243,7 +234,7 @@ class HHClient:
         Raises:
             httpx.HTTPError: If the employer doesn't exist or API request fails.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/employers/{employer_id}", headers=self._get_headers()
             )
@@ -274,7 +265,7 @@ class HHClient:
         Raises:
             httpx.HTTPError: If the vacancy doesn't exist or API request fails.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/vacancies/{vacancy_id}/similar_vacancies",
                 headers=self._get_headers(),
@@ -305,7 +296,7 @@ class HHClient:
         Raises:
             httpx.HTTPError: If the API request fails.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/areas", headers=self._get_headers()
             )
@@ -338,111 +329,9 @@ class HHClient:
         Raises:
             httpx.HTTPError: If the API request fails.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/dictionaries", headers=self._get_headers()
-            )
-            response.raise_for_status()
-            return response.json()
-
-    def set_tokens(self, access_token: str, refresh_token: str, expires_in: int):
-        """Set OAuth tokens and calculate expiration time.
-
-        Updates the client's authentication tokens and calculates the
-        expiration time for the access token. This method is typically
-        called after successful OAuth authentication or token refresh.
-
-        Args:
-            access_token (str): OAuth access token for authenticated API calls.
-            refresh_token (str): Refresh token for renewing expired access tokens.
-            expires_in (int): Token lifetime in seconds from now.
-        """
-        self.access_token = access_token
-        self.refresh_token = refresh_token
-        self.token_expires_at = datetime.now() + timedelta(seconds=expires_in)
-
-    async def refresh_access_token(self) -> bool:
-        """Refresh the access token using the refresh token.
-
-        Attempts to refresh the OAuth access token using the stored refresh token.
-        If successful, updates the client's tokens and expiration time.
-
-        This method is useful for maintaining authentication when the access
-        token expires, avoiding the need for full re-authentication.
-
-        Returns:
-            bool: True if token refresh was successful and new tokens were set,
-                False if refresh failed (no refresh token or API error).
-
-        Note:
-            Requires a valid refresh token to be set in the client.
-            If refresh fails, the user will need to re-authenticate via OAuth.
-        """
-        if not self.refresh_token:
-            return False
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://hh.ru/oauth/token",
-                data={
-                    "grant_type": "refresh_token",
-                    "refresh_token": self.refresh_token,
-                },
-                headers=self._get_headers(),
-            )
-
-            if response.status_code == 200:
-                data = response.json()
-                self.set_tokens(
-                    data["access_token"], data["refresh_token"], data["expires_in"]
-                )
-                return True
-        return False
-
-    async def apply_to_vacancy(
-        self, vacancy_id: str, resume_id: str, letter: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Submit a job application to a specific vacancy.
-
-        Submits an application for a job vacancy using one of the user's
-        resumes. Optionally includes a cover letter with the application.
-
-        This method requires OAuth authentication. The user must have
-        authorized the application and have a valid access token.
-
-        Args:
-            vacancy_id (str): The unique identifier of the vacancy to apply to.
-                Must be a valid, active vacancy ID.
-            resume_id (str): The ID of the user's resume to use for the application.
-                Must be one of the user's own resumes.
-            letter (Optional[str]): Cover letter text to include with the
-                application. Optional but recommended for better results.
-
-        Returns:
-            Dict[str, Any]: Application response containing:
-                - id (str): Application/negotiation ID
-                - created_at (str): Application submission timestamp
-                - updated_at (str): Last update timestamp
-                - state (Dict): Application status information
-                - vacancy (Dict): Applied vacancy basic information
-
-        Raises:
-            Exception: If no access token is available (authentication required).
-            httpx.HTTPError: If the application fails (vacancy not found,
-                resume not accessible, already applied, etc.).
-        """
-        if not self.access_token:
-            raise Exception("Authentication required. User must authorize via OAuth.")
-
-        data = {"vacancy_id": vacancy_id, "resume_id": resume_id}
-        if letter:
-            data["letter"] = letter
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.BASE_URL}/negotiations",
-                json=data,
-                headers=self._get_headers(authenticated=True),
             )
             response.raise_for_status()
             return response.json()
@@ -485,7 +374,7 @@ class HHClient:
 
         params = {"per_page": per_page, "page": page}
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/negotiations",
                 params=params,
@@ -521,7 +410,7 @@ class HHClient:
         if not self.access_token:
             raise Exception("Authentication required.")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/resumes/mine",
                 headers=self._get_headers(authenticated=True),
@@ -564,7 +453,7 @@ class HHClient:
         if not self.access_token:
             raise Exception("Authentication required.")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
             response = await client.get(
                 f"{self.BASE_URL}/resumes/{resume_id}",
                 headers=self._get_headers(authenticated=True),

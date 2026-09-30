@@ -13,19 +13,18 @@
 
 **MCP (Model Context Protocol) server for integrating HeadHunter API with Claude Code and other MCP clients.**
 
-HeadHunter (hh.ru) is the largest job search platform in Russia and CIS countries. This MCP server provides seamless integration with HeadHunter API, enabling AI assistants to search vacancies, manage resumes, and apply to jobs on your behalf.
+This hardened fork provides read-only access to HeadHunter search, vacancy, employer, resume, and application-history data. It intentionally contains no tool or HTTP method for submitting job applications.
 
 ### Features
 
 - 🔍 **Advanced Vacancy Search** - Filter by location, salary, experience, employment type
-- 📄 **Resume Management** - View and manage your HeadHunter resumes
-- ✉️ **Job Applications** - Apply to vacancies with custom cover letters
+- 📄 **Resume Viewing** - View your HeadHunter resumes
 - 🏢 **Company Information** - Get detailed employer data
 - 📊 **Application Tracking** - Monitor your job application history
 - 🤖 **AI-Powered Agent** - Automated vacancy hunter with intelligent matching
 - 🔐 **OAuth 2.0** - Secure authorization with HeadHunter
 
-### Available Tools (10)
+### Available Tools (9, read-only)
 
 1. **hh_search_vacancies** - Search for job vacancies
 2. **hh_get_vacancy** - Get detailed vacancy information
@@ -35,8 +34,7 @@ HeadHunter (hh.ru) is the largest job search platform in Russia and CIS countrie
 6. **hh_get_dictionaries** - Get reference data (experience, employment types, etc.)
 7. **hh_get_resumes** - Get your resumes list
 8. **hh_get_resume** - Get detailed resume information
-9. **hh_apply_to_vacancy** - Apply to a vacancy (requires OAuth)
-10. **hh_get_negotiations** - Get application history (requires OAuth)
+9. **hh_get_negotiations** - Get application history (requires OAuth)
 
 ### Quick Start
 
@@ -71,21 +69,19 @@ Add to your `~/.claude.json`:
     "headhunter": {
       "type": "stdio",
       "command": "/path/to/venv/bin/python",
-      "args": ["/path/to/headhunter-mcp-server/server.py"],
-      "env": {
-        "HH_CLIENT_ID": "your_client_id",
-        "HH_CLIENT_SECRET": "your_client_secret",
-        "HH_APP_TOKEN": "your_app_token",
-        "HH_REDIRECT_URI": "https://your-domain.com/oauth/callback"
-      }
+      "args": ["/path/to/headhunter-mcp-server/server.py"]
     }
   }
 }
 ```
 
+The server reads only `HH_APP_TOKEN` and `HH_ACCESS_TOKEN` from its local,
+git-ignored `.env`. Do not place `HH_CLIENT_SECRET` or the refresh token in the
+Codex MCP configuration. For public search only, omit user OAuth entirely.
+
 #### 4. OAuth Authorization (Optional)
 
-For job applications and resume management:
+For viewing resumes and application history:
 
 ```bash
 python examples/oauth_flow.py
@@ -105,8 +101,6 @@ Show my resumes
 # Get vacancy details
 Show details for vacancy 126209046
 
-# Apply to a job (after OAuth)
-Apply to vacancy 126209046 with resume [resume_id] and cover letter: "Hello..."
 ```
 
 ### Vacancy Hunter Agent
@@ -128,7 +122,7 @@ Run vacancy-hunter agent
 
 ```
 headhunter-mcp-server/
-├── server.py              # MCP server (10 tools)
+├── server.py              # Read-only MCP server (9 tools)
 ├── hh_client.py           # HeadHunter API client
 ├── requirements.txt       # Python dependencies
 ├── .env.example           # Environment variables template
@@ -164,19 +158,18 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 **MCP сервер для интеграции HeadHunter API с Claude Code и другими MCP клиентами.**
 
-HeadHunter (hh.ru) — крупнейшая платформа по поиску работы в России и странах СНГ. Этот MCP сервер обеспечивает бесшовную интеграцию с API HeadHunter, позволяя AI ассистентам искать вакансии, управлять резюме и откликаться на вакансии от вашего имени.
+Этот усиленный fork предоставляет только чтение данных HeadHunter: поиск, вакансии, работодатели, резюме и история откликов. Инструмента и HTTP-метода для отправки откликов в коде намеренно нет.
 
 ### Возможности
 
 - 🔍 **Расширенный поиск вакансий** - Фильтрация по местоположению, зарплате, опыту, типу занятости
-- 📄 **Управление резюме** - Просмотр и управление вашими резюме на HeadHunter
-- ✉️ **Отклики на вакансии** - Подача заявок с персонализированными сопроводительными письмами
+- 📄 **Просмотр резюме** - Просмотр ваших резюме на HeadHunter
 - 🏢 **Информация о компаниях** - Получение детальных данных о работодателях
 - 📊 **Отслеживание откликов** - Мониторинг истории ваших откликов
 - 🤖 **AI-агент** - Автоматизированный поиск вакансий с умным сопоставлением
 - 🔐 **OAuth 2.0** - Безопасная авторизация через HeadHunter
 
-### Доступные инструменты (10)
+### Доступные инструменты (9, только чтение)
 
 1. **hh_search_vacancies** - Поиск вакансий
 2. **hh_get_vacancy** - Детальная информация о вакансии
@@ -186,8 +179,7 @@ HeadHunter (hh.ru) — крупнейшая платформа по поиску
 6. **hh_get_dictionaries** - Справочные данные (опыт, типы занятости и т.д.)
 7. **hh_get_resumes** - Список ваших резюме
 8. **hh_get_resume** - Детальная информация о резюме
-9. **hh_apply_to_vacancy** - Откликнуться на вакансию (требует OAuth)
-10. **hh_get_negotiations** - История откликов (требует OAuth)
+9. **hh_get_negotiations** - История откликов (требует OAuth)
 
 ### Быстрый старт
 
@@ -222,21 +214,19 @@ cp .env.example .env
     "headhunter": {
       "type": "stdio",
       "command": "/путь/к/venv/bin/python",
-      "args": ["/путь/к/headhunter-mcp-server/server.py"],
-      "env": {
-        "HH_CLIENT_ID": "ваш_client_id",
-        "HH_CLIENT_SECRET": "ваш_client_secret",
-        "HH_APP_TOKEN": "ваш_app_token",
-        "HH_REDIRECT_URI": "https://ваш-домен.com/oauth/callback"
-      }
+      "args": ["/путь/к/headhunter-mcp-server/server.py"]
     }
   }
 }
 ```
 
+Сервер читает из локального `.env` только `HH_APP_TOKEN` и `HH_ACCESS_TOKEN`.
+Не помещайте `HH_CLIENT_SECRET` или refresh token в конфигурацию MCP Codex. Для
+одного лишь публичного поиска вообще не подключайте пользовательский OAuth.
+
 #### 4. OAuth авторизация (опционально)
 
-Для откликов на вакансии и управления резюме:
+Для просмотра резюме и истории откликов:
 
 ```bash
 python examples/oauth_flow.py
@@ -256,8 +246,6 @@ python examples/oauth_flow.py
 # Детали вакансии
 Покажи детали вакансии 126209046
 
-# Отклик на вакансию (после OAuth)
-Откликнись на вакансию 126209046 резюме [resume_id] с письмом: "Здравствуйте..."
 ```
 
 ### Vacancy Hunter Agent
